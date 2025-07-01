@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -23,7 +24,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  UserCheck,
+  Shield
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +36,60 @@ import ProductManagementDialog from "./product-management-dialog";
 import ReportsDialog from "./reports-dialog";
 import AnnouncementForm from "./announcement-form";
 import type { User, Company, Product, TimeOffRequest, PreRegisteredEmployee } from "@shared/schema";
+
+// User Role Actions Component
+function UserRoleActions({ employee }: { employee: User }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async (newRole: string) => {
+      const response = await apiRequest("POST", "/api/users/set-role", { 
+        role: newRole,
+        targetUserId: employee.id 
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Role Updated",
+        description: `User role has been updated successfully.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRoleChange = (newRole: string) => {
+    if (newRole !== employee.role) {
+      updateRoleMutation.mutate(newRole);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Select value={employee.role || 'employee'} onValueChange={handleRoleChange}>
+        <SelectTrigger className="w-32">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="employee">Employee</SelectItem>
+          <SelectItem value="manager">Manager</SelectItem>
+          <SelectItem value="admin">Admin</SelectItem>
+        </SelectContent>
+      </Select>
+      {updateRoleMutation.isPending && (
+        <div className="text-xs text-muted-foreground">Updating...</div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -45,7 +102,7 @@ export default function AdminDashboard() {
 
   // Fetch data for admin dashboard
   const { data: employees = [] } = useQuery<User[]>({
-    queryKey: ["/api/employees"],
+    queryKey: ["/api/users"],
   });
 
   const { data: companies = [] } = useQuery<Company[]>({
@@ -258,18 +315,32 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Company</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Current Role</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {activeEmployees.map((employee) => (
                       <TableRow key={employee.id}>
-                        <TableCell>{employee.firstName} {employee.lastName}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{employee.role}</Badge>
+                          <div>
+                            <p className="font-medium">{employee.firstName} {employee.lastName}</p>
+                            <p className="text-sm text-muted-foreground">{employee.position || 'No position'}</p>
+                          </div>
                         </TableCell>
-                        <TableCell>{employee.companyId || 'Unassigned'}</TableCell>
+                        <TableCell>{employee.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            employee.role === 'admin' ? 'default' :
+                            employee.role === 'manager' ? 'secondary' : 'outline'
+                          }>
+                            {employee.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <UserRoleActions employee={employee} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

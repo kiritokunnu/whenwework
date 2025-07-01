@@ -54,18 +54,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes
+  // User management routes - Only allow role assignment by admins for other users
   app.post('/api/users/set-role', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { role } = req.body;
+      const { role, targetUserId } = req.body;
       
       if (!['admin', 'manager', 'employee'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
 
-      const user = await storage.updateUserRole(userId, role);
-      res.json(user);
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // If setting role for self and no role is set, allow employee role assignment
+      if (!targetUserId || targetUserId === userId) {
+        if (!currentUser.role) {
+          // First time role assignment - only allow employee role
+          if (role !== 'employee') {
+            return res.status(403).json({ 
+              message: "New users can only be assigned as employees. Contact an admin for elevated permissions." 
+            });
+          }
+          const user = await storage.updateUserRole(userId, role);
+          res.json(user);
+        } else {
+          return res.status(403).json({ 
+            message: "You cannot change your own role. Contact an admin to modify your permissions." 
+          });
+        }
+      } else {
+        // Setting role for another user - only admins can do this
+        if (currentUser.role !== 'admin') {
+          return res.status(403).json({ 
+            message: "Only administrators can assign roles to other users." 
+          });
+        }
+        
+        const targetUser = await storage.getUser(targetUserId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
+        
+        const updatedUser = await storage.updateUserRole(targetUserId, role);
+        res.json(updatedUser);
+      }
     } catch (error) {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Failed to update user role" });

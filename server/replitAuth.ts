@@ -60,13 +60,27 @@ async function upsertUser(
   // Check if user exists in pre-registered employees
   const preRegistered = await storage.getPreRegisteredEmployeeByEmail(claims["email"]);
   
+  // Check if this is the first user in the system
+  const allUsers = await storage.getAllUsers();
+  const isFirstUser = allUsers.length === 0;
+  
+  // Determine role: first user becomes admin, others get employee role by default
+  let role: "admin" | "manager" | "employee" = "employee";
+  if (isFirstUser) {
+    role = "admin";
+  } else if (preRegistered) {
+    role = "employee";
+  } else {
+    role = "employee";
+  }
+  
   const userData = {
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"] || preRegistered?.firstName,
     lastName: claims["last_name"] || preRegistered?.lastName,
     profileImageUrl: claims["profile_image_url"],
-    role: preRegistered ? "employee" as const : "employee" as const,
+    role: role,
     position: preRegistered?.position,
     companyId: preRegistered?.companyId,
     phone: preRegistered?.phone,
