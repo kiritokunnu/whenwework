@@ -9,6 +9,7 @@ import {
   preRegisteredEmployees,
   products,
   checkInProducts,
+  workSummaries,
   type User,
   type UpsertUser,
   type Company,
@@ -143,6 +144,11 @@ export interface IStorage {
   getActivePolls(userRole: string): Promise<Poll[]>;
   createPollResponse(response: InsertPollResponse): Promise<PollResponse>;
   getPollResponses(pollId: number): Promise<PollResponse[]>;
+  
+  // Work summary operations
+  createWorkSummary(workSummary: InsertWorkSummary): Promise<WorkSummary>;
+  getWorkSummary(checkInId: number): Promise<WorkSummary | undefined>;
+  createCheckInProduct(checkInProduct: InsertCheckInProduct): Promise<CheckInProduct>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -717,6 +723,31 @@ export class DatabaseStorage implements IStorage {
 
   async getPollResponses(pollId: number): Promise<any[]> {
     return [];
+  }
+
+  // Work summary operations
+  async createWorkSummary(workSummaryData: any): Promise<any> {
+    const [workSummary] = await db
+      .insert(workSummaries)
+      .values(workSummaryData)
+      .returning();
+    return workSummary;
+  }
+
+  async getWorkSummary(checkInId: number): Promise<any> {
+    const [workSummary] = await db
+      .select()
+      .from(workSummaries)
+      .where(eq(workSummaries.checkInId, checkInId));
+    return workSummary;
+  }
+
+  async createCheckInProduct(checkInProductData: any): Promise<any> {
+    const [checkInProduct] = await db
+      .insert(checkInProducts)
+      .values(checkInProductData)
+      .returning();
+    return checkInProduct;
   }
 }
 

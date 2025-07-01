@@ -171,6 +171,20 @@ export const checkInProducts = pgTable("check_in_products", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Work summaries with voice notes and transcriptions
+export const workSummaries = pgTable("work_summaries", {
+  id: serial("id").primaryKey(),
+  checkInId: integer("check_in_id").notNull(),
+  workNotes: text("work_notes"),
+  voiceRecordingUrl: text("voice_recording_url"),
+  voiceTranscription: text("voice_transcription"),
+  voiceTranslation: text("voice_translation"),
+  recordingLanguage: varchar("recording_language").default("en-IN"),
+  recordingDuration: integer("recording_duration"), // in seconds
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Real-time chat system
 export const chatRooms = pgTable("chat_rooms", {
   id: serial("id").primaryKey(),
@@ -393,6 +407,13 @@ export const checkInProductsRelations = relations(checkInProducts, ({ one }) => 
   }),
 }));
 
+export const workSummariesRelations = relations(workSummaries, ({ one }) => ({
+  checkIn: one(checkIns, {
+    fields: [workSummaries.checkInId],
+    references: [checkIns.id],
+  }),
+}));
+
 export const chatRoomsRelations = relations(chatRooms, ({ many }) => ({
   messages: many(chatMessages),
 }));
@@ -570,6 +591,12 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertWorkSummarySchema = createInsertSchema(workSummaries).omit({
+  id: true,
+  submittedAt: true,
+  createdAt: true,
+});
+
 export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
@@ -579,3 +606,5 @@ export type InsertShiftSwapRequest = z.infer<typeof insertShiftSwapRequestSchema
 export type InsertPoll = z.infer<typeof insertPollSchema>;
 export type InsertPollResponse = z.infer<typeof insertPollResponseSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertWorkSummary = z.infer<typeof insertWorkSummarySchema>;
+export type WorkSummary = typeof workSummaries.$inferSelect;

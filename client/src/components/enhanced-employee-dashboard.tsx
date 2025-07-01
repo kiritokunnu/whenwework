@@ -25,7 +25,8 @@ import {
   Star
 } from "lucide-react";
 import { format, subDays, startOfWeek, isToday } from "date-fns";
-import EnhancedCheckInModal from "./enhanced-check-in-modal";
+import StreamlinedCheckInModal from "./streamlined-check-in-modal";
+import EnhancedWorkSummaryModal from "./enhanced-work-summary-modal";
 import EnhancedTimeOffForm from "./enhanced-time-off-form";
 import EmployeeChat from "./employee-chat";
 import EmployeeTasks from "./employee-tasks";
@@ -35,6 +36,8 @@ import type { CheckIn, Schedule, Company, Task, Shift, Notification } from "@sha
 export default function EnhancedEmployeeDashboard() {
   const { user } = useAuth();
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showCheckOutModal, setShowCheckOutModal] = useState(false);
+  const [showWorkSummaryModal, setShowWorkSummaryModal] = useState(false);
   const [showTimeOffForm, setShowTimeOffForm] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
@@ -80,6 +83,10 @@ export default function EnhancedEmployeeDashboard() {
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["/api/products"],
   });
 
   // Calculate enhanced stats
@@ -180,13 +187,19 @@ export default function EnhancedEmployeeDashboard() {
         {/* Enhanced Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Button
-            onClick={() => setShowCheckInModal(true)}
+            onClick={() => {
+              if (activeCheckIn) {
+                setShowWorkSummaryModal(true);
+              } else {
+                setShowCheckInModal(true);
+              }
+            }}
             className="h-auto p-4 flex flex-col items-center gap-2"
             variant={activeCheckIn ? "destructive" : "default"}
           >
             {activeCheckIn ? <LogOut className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
             <span className="text-sm">
-              {activeCheckIn ? "Check Out" : "Check In"}
+              {activeCheckIn ? "Work Summary" : "Check In"}
             </span>
           </Button>
 
@@ -510,11 +523,26 @@ export default function EnhancedEmployeeDashboard() {
       </section>
 
       {/* Modals */}
-      <EnhancedCheckInModal
+      <StreamlinedCheckInModal
         isOpen={showCheckInModal}
         onClose={() => setShowCheckInModal(false)}
         companies={companies as Company[]}
-        location={location}
+        isCheckOut={false}
+      />
+
+      <StreamlinedCheckInModal
+        isOpen={showCheckOutModal}
+        onClose={() => setShowCheckOutModal(false)}
+        companies={companies as Company[]}
+        isCheckOut={true}
+        activeCheckIn={activeCheckIn}
+      />
+
+      <EnhancedWorkSummaryModal
+        isOpen={showWorkSummaryModal}
+        onClose={() => setShowWorkSummaryModal(false)}
+        checkInId={activeCheckIn?.id || 0}
+        products={products || []}
       />
 
       <EnhancedTimeOffForm

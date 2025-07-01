@@ -269,6 +269,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Work summary routes with voice recording support
+  app.post('/api/work-summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { checkInId, workNotes, products, voiceTranscription, voiceTranslation, recordingLanguage } = req.body;
+      
+      // Create work summary
+      const workSummaryData = {
+        checkInId: parseInt(checkInId),
+        workNotes,
+        voiceTranscription,
+        voiceTranslation,
+        recordingLanguage
+      };
+      
+      const workSummary = await storage.createWorkSummary(workSummaryData);
+      
+      // Add selected products to check-in
+      if (products) {
+        const productData = JSON.parse(products);
+        for (const product of productData) {
+          await storage.createCheckInProduct({
+            checkInId: parseInt(checkInId),
+            productId: product.productId,
+            quantity: product.quantity,
+            notes: product.notes
+          });
+        }
+      }
+      
+      // Update check-in status to checked_out
+      await storage.updateCheckIn(parseInt(checkInId), { 
+        checkOutTime: new Date(),
+        status: 'checked_out'
+      });
+      
+      res.json(workSummary);
+    } catch (error) {
+      console.error("Error creating work summary:", error);
+      res.status(500).json({ message: "Failed to create work summary" });
+    }
+  });
+
+  // Check-out route
+  app.post('/api/check-ins/checkout', isAuthenticated, async (req: any, res) => {
+    try {
+      const { checkInId, notes } = req.body;
+      
+      const updates = {
+        checkOutTime: new Date(),
+        status: 'checked_out' as const,
+        notes: notes || undefined
+      };
+      
+      const checkIn = await storage.updateCheckIn(parseInt(checkInId), updates);
+      res.json(checkIn);
+    } catch (error) {
+      console.error("Error checking out:", error);
+      res.status(500).json({ message: "Failed to check out" });
+    }
+  });
+
+  // Translation API route for voice recordings
+  app.post('/api/translate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, from, to } = req.body;
+      
+      // Simple fallback translation - in production, use Google Translate API
+      // For now, return the original text as translation
+      const translatedText = text; // Placeholder - integrate real translation service
+      
+      res.json({ translatedText });
+    } catch (error) {
+      console.error("Error translating text:", error);
+      res.status(500).json({ message: "Failed to translate text" });
+    }
+  });
+
   // Time-off request routes
   app.post('/api/time-off-requests', isAuthenticated, async (req: any, res) => {
     try {
