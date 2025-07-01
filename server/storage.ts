@@ -149,6 +149,30 @@ export interface IStorage {
   createWorkSummary(workSummary: InsertWorkSummary): Promise<WorkSummary>;
   getWorkSummary(checkInId: number): Promise<WorkSummary | undefined>;
   createCheckInProduct(checkInProduct: InsertCheckInProduct): Promise<CheckInProduct>;
+  
+  // Expense tracking operations
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  getExpensesByEmployee(employeeId: string): Promise<Expense[]>;
+  getAllExpenses(): Promise<Expense[]>;
+  updateExpenseStatus(id: number, status: string, approvedBy?: string, rejectionReason?: string): Promise<Expense>;
+  
+  // Push notification operations
+  createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscriptionsByUser(userId: string): Promise<PushSubscription[]>;
+  createPushNotification(notification: InsertPushNotification): Promise<PushNotification>;
+  sendPushNotification(userId: string, title: string, body: string, data?: any): Promise<void>;
+  
+  // Biometric authentication operations
+  createBiometricCredential(credential: InsertBiometricCredential): Promise<BiometricCredential>;
+  getBiometricCredentialsByUser(userId: string): Promise<BiometricCredential[]>;
+  verifyBiometricCredential(credentialId: string): Promise<BiometricCredential | undefined>;
+  
+  // Geofencing operations
+  createGeofence(geofence: InsertGeofence): Promise<Geofence>;
+  getGeofencesByCompany(companyId: number): Promise<Geofence[]>;
+  getAllGeofences(): Promise<Geofence[]>;
+  createGeofenceEvent(event: InsertGeofenceEvent): Promise<GeofenceEvent>;
+  checkGeofenceEntry(userId: string, latitude: number, longitude: number): Promise<Geofence[]>;
 }
 
 export class DatabaseStorage implements IStorage {

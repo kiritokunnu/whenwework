@@ -31,10 +31,9 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import PreRegisterEmployeeForm from "./pre-register-employee-form";
-import ProductManagementDialog from "./product-management-dialog";
-import ReportsDialog from "./reports-dialog";
-import AnnouncementForm from "./announcement-form";
+import SiteManagement from "./site-management";
+import EmployeeManagement from "./employee-management";
+import ScheduleManagement from "./schedule-management";
 import type { User, Company, Product, TimeOffRequest, PreRegisteredEmployee } from "@shared/schema";
 
 // User Role Actions Component
@@ -224,9 +223,11 @@ export default function AdminDashboard() {
 
       {/* Main Dashboard Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="sites">Sites</TabsTrigger>
+          <TabsTrigger value="schedules">Schedules</TabsTrigger>
           <TabsTrigger value="requests">Requests</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -297,99 +298,15 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="employees" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Employee Management</h3>
-            <Button onClick={() => setShowPreRegisterForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Pre-register New Employee
-            </Button>
-          </div>
+          <EmployeeManagement />
+        </TabsContent>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Employees</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Current Role</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activeEmployees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{employee.firstName} {employee.lastName}</p>
-                            <p className="text-sm text-muted-foreground">{employee.position || 'No position'}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{employee.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            employee.role === 'admin' ? 'default' :
-                            employee.role === 'manager' ? 'secondary' : 'outline'
-                          }>
-                            {employee.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <UserRoleActions employee={employee} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+        <TabsContent value="sites" className="space-y-4">
+          <SiteManagement />
+        </TabsContent>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Pre-registered Employees</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {preRegisteredEmployees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell>{employee.firstName} {employee.lastName}</TableCell>
-                        <TableCell>{employee.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={employee.isUsed ? "default" : "secondary"}>
-                            {employee.isUsed ? "Registered" : "Pending"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {!employee.isUsed && (
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deletePreRegisteredMutation.mutate(employee.id)}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="schedules" className="space-y-4">
+          <ScheduleManagement />
         </TabsContent>
 
         <TabsContent value="requests" className="space-y-4">
@@ -513,22 +430,7 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs */}
-      <PreRegisterEmployeeForm 
-        isOpen={showPreRegisterForm} 
-        onClose={() => setShowPreRegisterForm(false)} 
-      />
-      
-      {/* Placeholder dialogs - would be implemented similarly */}
-      {showProductDialog && (
-        <div>Product Management Dialog - Implementation needed</div>
-      )}
-      {showReportsDialog && (
-        <div>Reports Dialog - Implementation needed</div>
-      )}
-      {showAnnouncementForm && (
-        <div>Announcement Form - Implementation needed</div>
-      )}
+      {/* Future dialogs would be implemented here */}
     </div>
   );
 }
