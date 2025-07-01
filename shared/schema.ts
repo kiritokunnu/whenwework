@@ -608,3 +608,143 @@ export type InsertPollResponse = z.infer<typeof insertPollResponseSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertWorkSummary = z.infer<typeof insertWorkSummarySchema>;
 export type WorkSummary = typeof workSummaries.$inferSelect;
+
+// Expense Tracking Tables
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id").notNull(),
+  taskId: integer("task_id"), // Link to tasks
+  shiftId: integer("shift_id"), // Link to shifts  
+  checkInId: integer("check_in_id"), // Link to client visits
+  companyId: integer("company_id"), // Link to companies
+  category: varchar("category").notNull(), // Travel, Food, Supplies, etc.
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default("USD"),
+  description: text("description").notNull(),
+  receiptUrl: text("receipt_url"), // Photo of receipt
+  status: varchar("status", { enum: ["pending", "approved", "rejected", "reimbursed"] }).default("pending"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  approvedBy: varchar("approved_by"), // Manager/Admin who approved
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  reimbursedAt: timestamp("reimbursed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Push Notification Tables
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dhKey: text("p256dh_key").notNull(),
+  authKey: text("auth_key").notNull(),
+  userAgent: text("user_agent"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pushNotifications = pgTable("push_notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  title: varchar("title").notNull(),
+  body: text("body").notNull(),
+  icon: varchar("icon"),
+  badge: varchar("badge"),
+  tag: varchar("tag"), // For grouping notifications
+  data: jsonb("data"), // Additional data payload
+  url: varchar("url"), // Action URL
+  priority: varchar("priority", { enum: ["low", "normal", "high", "urgent"] }).default("normal"),
+  status: varchar("status", { enum: ["pending", "sent", "delivered", "failed"] }).default("pending"),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Biometric Authentication Tables
+export const biometricCredentials = pgTable("biometric_credentials", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key").notNull(),
+  authenticatorType: varchar("authenticator_type"), // fingerprint, face, etc.
+  deviceName: varchar("device_name"),
+  isActive: boolean("is_active").default(true),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Geofencing Tables
+export const geofences = pgTable("geofences", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  centerLatitude: decimal("center_latitude", { precision: 10, scale: 8 }).notNull(),
+  centerLongitude: decimal("center_longitude", { precision: 11, scale: 8 }).notNull(),
+  radiusMeters: integer("radius_meters").notNull(),
+  isActive: boolean("is_active").default(true),
+  autoCheckIn: boolean("auto_check_in").default(false),
+  autoCheckOut: boolean("auto_check_out").default(false),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const geofenceEvents = pgTable("geofence_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  geofenceId: integer("geofence_id").notNull(),
+  eventType: varchar("event_type", { enum: ["enter", "exit"] }).notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  checkInId: integer("check_in_id"), // If auto check-in was triggered
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Insert schemas for the new tables
+export const insertExpenseSchema = createInsertSchema(expenses).omit({
+  id: true,
+  submittedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPushNotificationSchema = createInsertSchema(pushNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBiometricCredentialSchema = createInsertSchema(biometricCredentials).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGeofenceSchema = createInsertSchema(geofences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGeofenceEventSchema = createInsertSchema(geofenceEvents).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Types
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = typeof expenses.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushNotification = z.infer<typeof insertPushNotificationSchema>;
+export type PushNotification = typeof pushNotifications.$inferSelect;
+export type InsertBiometricCredential = z.infer<typeof insertBiometricCredentialSchema>;
+export type BiometricCredential = typeof biometricCredentials.$inferSelect;
+export type InsertGeofence = z.infer<typeof insertGeofenceSchema>;
+export type Geofence = typeof geofences.$inferSelect;
+export type InsertGeofenceEvent = z.infer<typeof insertGeofenceEventSchema>;
+export type GeofenceEvent = typeof geofenceEvents.$inferSelect;
