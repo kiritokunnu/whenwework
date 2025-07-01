@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   position: varchar("position"),
   phone: varchar("phone"),
   companyId: integer("company_id"),
+  organizationName: varchar("organization_name"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
