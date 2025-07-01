@@ -55,12 +55,13 @@ export default function EnhancedCheckInModal({ isOpen, onClose, companies, locat
 
   const checkInMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/check-ins", "POST", data);
+      const response = await apiRequest("POST", "/api/check-ins", data);
+      return response.json();
     },
     onSuccess: async (checkIn: any) => {
       // Add selected products to the check-in
       if (selectedProducts.length > 0) {
-        await apiRequest(`/api/check-ins/${checkIn.id}/products`, "POST", {
+        await apiRequest("POST", `/api/check-ins/${checkIn.id}/products`, {
           products: selectedProducts
         });
       }
@@ -85,7 +86,8 @@ export default function EnhancedCheckInModal({ isOpen, onClose, companies, locat
 
   const addCustomProductMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/products/custom", "POST", data);
+      const response = await apiRequest("POST", "/api/products/custom", data);
+      return response.json();
     },
     onSuccess: (newProduct: any) => {
       toast({
