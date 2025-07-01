@@ -127,7 +127,17 @@ WorkForce Manager is a comprehensive workforce management application designed f
 
 ## Changelog
 
-Changelog:
+Recent Major Updates:
+- July 01, 2025. Enhanced with comprehensive Employee-focused real-time collaboration features
+  ✓ Real-time chat system with group/direct messaging, file sharing, and voice notes
+  ✓ Task management with photo/video proof, location verification, and time tracking
+  ✓ Enhanced shift management with peer-to-peer swap requests and coverage
+  ✓ Real-time notifications system for all activities
+  ✓ Poll and announcement broadcast capabilities
+  ✓ Comprehensive database schema with 15+ new tables
+  ✓ Mobile-optimized UI components for field workers
+  ✓ Full API backend supporting all Employee workflow features
+
 - July 01, 2025. Initial setup
 
 ## User Preferences

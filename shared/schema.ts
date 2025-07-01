@@ -171,6 +171,155 @@ export const checkInProducts = pgTable("check_in_products", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Real-time chat system
+export const chatRooms = pgTable("chat_rooms", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  type: varchar("type", { enum: ["group", "direct", "announcement"] }).notNull(),
+  participants: text("participants").array().notNull(), // Array of user IDs
+  createdBy: varchar("created_by").notNull(),
+  isActive: boolean("is_active").default(true),
+  lastActivity: timestamp("last_activity").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
+  messageType: varchar("message_type", { enum: ["text", "image", "file", "voice", "location"] }).default("text"),
+  content: text("content"),
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  isEdited: boolean("is_edited").default(false),
+  replyToId: integer("reply_to_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messageReadReceipts = pgTable("message_read_receipts", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  readAt: timestamp("read_at").defaultNow(),
+});
+
+// Tasks and assignments
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  assignedTo: varchar("assigned_to").notNull(),
+  assignedBy: varchar("assigned_by").notNull(),
+  companyId: integer("company_id"),
+  priority: varchar("priority", { enum: ["low", "medium", "high", "urgent"] }).default("medium"),
+  status: varchar("status", { enum: ["pending", "in_progress", "completed", "cancelled"] }).default("pending"),
+  dueDate: timestamp("due_date"),
+  requiresPhoto: boolean("requires_photo").default(false),
+  requiresLocation: boolean("requires_location").default(false),
+  estimatedHours: decimal("estimated_hours"),
+  actualHours: decimal("actual_hours"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const taskUpdates = pgTable("task_updates", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  status: varchar("status", { enum: ["pending", "in_progress", "completed", "cancelled"] }).notNull(),
+  comment: text("comment"),
+  photoUrl: text("photo_url"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  hoursWorked: decimal("hours_worked"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Shift management
+export const shifts = pgTable("shifts", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id").notNull(),
+  title: varchar("title").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  breakDuration: integer("break_duration").default(0), // minutes
+  companyId: integer("company_id"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringPattern: varchar("recurring_pattern"), // daily, weekly, monthly
+  recurringDays: text("recurring_days").array(), // ["monday", "tuesday"]
+  status: varchar("status", { enum: ["scheduled", "active", "completed", "cancelled"] }).default("scheduled"),
+  overtimeHours: decimal("overtime_hours").default('0'),
+  createdBy: varchar("created_by").notNull(),
+  reminderSent: boolean("reminder_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const shiftSwapRequests = pgTable("shift_swap_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: varchar("requester_id").notNull(),
+  originalShiftId: integer("original_shift_id").notNull(),
+  targetShiftId: integer("target_shift_id"),
+  coverageOnly: boolean("coverage_only").default(false),
+  reason: text("reason"),
+  status: varchar("status", { enum: ["pending", "approved", "rejected", "peer_approved"] }).default("pending"),
+  approvedBy: varchar("approved_by"),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Polls and surveys
+export const polls = pgTable("polls", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  options: jsonb("options").notNull(), // Array of poll options
+  targetRoles: text("target_roles").array().notNull(), // ["employee", "manager"]
+  createdBy: varchar("created_by").notNull(),
+  expiresAt: timestamp("expires_at"),
+  allowMultipleChoices: boolean("allow_multiple_choices").default(false),
+  isAnonymous: boolean("is_anonymous").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pollResponses = pgTable("poll_responses", {
+  id: serial("id").primaryKey(),
+  pollId: integer("poll_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  selectedOptions: text("selected_options").array().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  type: varchar("type", { enum: ["task", "shift", "chat", "announcement", "timeoff", "poll"] }).notNull(),
+  relatedId: integer("related_id"), // ID of related entity
+  isRead: boolean("is_read").default(false),
+  priority: varchar("priority", { enum: ["low", "normal", "high"] }).default("normal"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Offline sync queue
+export const syncQueue = pgTable("sync_queue", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  action: varchar("action").notNull(), // create, update, delete
+  tableName: varchar("table_name").notNull(),
+  recordId: varchar("record_id"),
+  data: jsonb("data").notNull(),
+  synced: boolean("synced").default(false),
+  attempts: integer("attempts").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   company: one(companies, {
@@ -242,6 +391,41 @@ export const checkInProductsRelations = relations(checkInProducts, ({ one }) => 
     fields: [checkInProducts.productId],
     references: [products.id],
   }),
+}));
+
+export const chatRoomsRelations = relations(chatRooms, ({ many }) => ({
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one, many }) => ({
+  room: one(chatRooms, {
+    fields: [chatMessages.roomId],
+    references: [chatRooms.id],
+  }),
+  readReceipts: many(messageReadReceipts),
+  replyTo: one(chatMessages, {
+    fields: [chatMessages.replyToId],
+    references: [chatMessages.id],
+  }),
+}));
+
+export const tasksRelations = relations(tasks, ({ many }) => ({
+  updates: many(taskUpdates),
+}));
+
+export const shiftsRelations = relations(shifts, ({ one }) => ({
+  employee: one(users, {
+    fields: [shifts.employeeId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [shifts.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const pollsRelations = relations(polls, ({ many }) => ({
+  responses: many(pollResponses),
 }));
 
 // Insert schemas
@@ -323,3 +507,75 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertCheckInProduct = z.infer<typeof insertCheckInProductSchema>;
 export type CheckInProduct = typeof checkInProducts.$inferSelect;
+
+// New feature types
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type MessageReadReceipt = typeof messageReadReceipts.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type TaskUpdate = typeof taskUpdates.$inferSelect;
+export type Shift = typeof shifts.$inferSelect;
+export type ShiftSwapRequest = typeof shiftSwapRequests.$inferSelect;
+export type Poll = typeof polls.$inferSelect;
+export type PollResponse = typeof pollResponses.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type SyncQueueItem = typeof syncQueue.$inferSelect;
+
+// Insert schemas for new features
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskUpdateSchema = createInsertSchema(taskUpdates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertShiftSchema = createInsertSchema(shifts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShiftSwapRequestSchema = createInsertSchema(shiftSwapRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPollSchema = createInsertSchema(polls).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPollResponseSchema = createInsertSchema(pollResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type InsertTaskUpdate = z.infer<typeof insertTaskUpdateSchema>;
+export type InsertShift = z.infer<typeof insertShiftSchema>;
+export type InsertShiftSwapRequest = z.infer<typeof insertShiftSwapRequestSchema>;
+export type InsertPoll = z.infer<typeof insertPollSchema>;
+export type InsertPollResponse = z.infer<typeof insertPollResponseSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;

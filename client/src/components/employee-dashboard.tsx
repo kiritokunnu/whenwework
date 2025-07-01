@@ -1,16 +1,50 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  MapPin, 
+  Clock, 
+  Calendar, 
+  CheckCircle, 
+  XCircle,
+  User,
+  Building2,
+  TrendingUp,
+  MessageCircle,
+  CheckSquare,
+  CalendarClock,
+  Bell,
+  LogOut,
+  Play,
+  Pause,
+  AlertCircle
+} from "lucide-react";
+import { format, subDays, startOfWeek } from "date-fns";
 import EnhancedCheckInModal from "./enhanced-check-in-modal";
 import EnhancedTimeOffForm from "./enhanced-time-off-form";
+import EmployeeChat from "./employee-chat";
+import EmployeeTasks from "./employee-tasks";
+import EmployeeShifts from "./employee-shifts";
+import type { CheckIn, Schedule, Company, Task, Shift, Notification } from "@shared/schema";
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showTimeOffForm, setShowTimeOffForm] = useState(false);
+  const [location, setLocation] = useState<GeolocationPosition | null>(null);
+
+  // Get user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => setLocation(position),
+        (error) => console.log("Location access denied:", error)
+      );
+    }
+  }, []);
 
   // Fetch data
   const { data: activeCheckIn } = useQuery({

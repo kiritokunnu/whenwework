@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import MobileHeader from "@/components/mobile-header";
 import BottomNavigation from "@/components/bottom-navigation";
-import EmployeeDashboard from "@/components/employee-dashboard";
+import EnhancedEmployeeDashboard from "@/components/enhanced-employee-dashboard";
 import ManagerDashboard from "@/components/manager-dashboard";
 
 export default function Dashboard() {
@@ -45,7 +45,7 @@ export default function Dashboard() {
       
       <div className="pb-20">
         {user.role === "employee" ? (
-          <EmployeeDashboard />
+          <EnhancedEmployeeDashboard />
         ) : (
           <ManagerDashboard />
         )}

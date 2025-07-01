@@ -564,6 +564,342 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real-time features API routes for Employee-focused workflow
+
+  // Chat API routes
+  app.get('/api/chat/rooms', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user.claims.sub;
+      const rooms = await storage.getChatRoomsByUser(userId);
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching chat rooms:", error);
+      res.status(500).json({ message: "Failed to fetch chat rooms" });
+    }
+  });
+
+  app.post('/api/chat/rooms', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user.claims.sub;
+      const roomData = { ...req.body, createdBy: userId };
+      const room = await storage.createChatRoom(roomData);
+      res.json(room);
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      res.status(500).json({ message: "Failed to create chat room" });
+    }
+  });
+
+  app.get('/api/chat/messages/:roomId', isAuthenticated, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const messages = await storage.getChatMessages(roomId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post('/api/chat/messages', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user.claims.sub;
+      const messageData = { ...req.body, senderId: userId };
+      const message = await storage.createChatMessage(messageData);
+      res.json(message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.post('/api/chat/messages/:messageId/read', isAuthenticated, async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const userId = (req as any).user.claims.sub;
+      await storage.markMessageAsRead(messageId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // Task API routes
+  app.get('/api/tasks/assigned', isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = (req as any).user.claims.sub;
+      const tasks = await storage.getTasksByEmployee(employeeId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post('/api/tasks', isAuthenticated, async (req, res) => {
+    try {
+      const assignedBy = (req as any).user.claims.sub;
+      const taskData = { ...req.body, assignedBy };
+      const task = await storage.createTask(taskData);
+      res.json(task);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.get('/api/tasks/:taskId', isAuthenticated, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      console.error("Error fetching task:", error);
+      res.status(500).json({ message: "Failed to fetch task" });
+    }
+  });
+
+  app.post('/api/tasks/:taskId/update', isAuthenticated, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const userId = (req as any).user.claims.sub;
+      const updateData = { ...req.body, taskId, userId };
+      const update = await storage.createTaskUpdate(updateData);
+      res.json(update);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.post('/api/tasks/:taskId/start', isAuthenticated, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const userId = (req as any).user.claims.sub;
+      const updateData = {
+        taskId,
+        userId,
+        status: "in_progress",
+        comment: "Task started"
+      };
+      const update = await storage.createTaskUpdate(updateData);
+      res.json(update);
+    } catch (error) {
+      console.error("Error starting task:", error);
+      res.status(500).json({ message: "Failed to start task" });
+    }
+  });
+
+  app.post('/api/tasks/:taskId/complete', isAuthenticated, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const userId = (req as any).user.claims.sub;
+      const updateData = { ...req.body, taskId, userId, status: "completed" };
+      const update = await storage.createTaskUpdate(updateData);
+      res.json(update);
+    } catch (error) {
+      console.error("Error completing task:", error);
+      res.status(500).json({ message: "Failed to complete task" });
+    }
+  });
+
+  app.get('/api/tasks/:taskId/updates', isAuthenticated, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const updates = await storage.getTaskUpdates(taskId);
+      res.json(updates);
+    } catch (error) {
+      console.error("Error fetching task updates:", error);
+      res.status(500).json({ message: "Failed to fetch task updates" });
+    }
+  });
+
+  // Shift API routes
+  app.get('/api/shifts/employee', isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = (req as any).user.claims.sub;
+      const shifts = await storage.getShiftsByEmployee(employeeId);
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      res.status(500).json({ message: "Failed to fetch shifts" });
+    }
+  });
+
+  app.get('/api/shifts', isAuthenticated, async (req, res) => {
+    try {
+      const shifts = await storage.getAllShifts();
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching all shifts:", error);
+      res.status(500).json({ message: "Failed to fetch shifts" });
+    }
+  });
+
+  app.post('/api/shifts', isAuthenticated, async (req, res) => {
+    try {
+      const createdBy = (req as any).user.claims.sub;
+      const shiftData = { ...req.body, createdBy };
+      const shift = await storage.createShift(shiftData);
+      res.json(shift);
+    } catch (error) {
+      console.error("Error creating shift:", error);
+      res.status(500).json({ message: "Failed to create shift" });
+    }
+  });
+
+  app.put('/api/shifts/:shiftId', isAuthenticated, async (req, res) => {
+    try {
+      const shiftId = parseInt(req.params.shiftId);
+      const shift = await storage.updateShift(shiftId, req.body);
+      res.json(shift);
+    } catch (error) {
+      console.error("Error updating shift:", error);
+      res.status(500).json({ message: "Failed to update shift" });
+    }
+  });
+
+  app.delete('/api/shifts/:shiftId', isAuthenticated, async (req, res) => {
+    try {
+      const shiftId = parseInt(req.params.shiftId);
+      await storage.deleteShift(shiftId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting shift:", error);
+      res.status(500).json({ message: "Failed to delete shift" });
+    }
+  });
+
+  // Shift swap requests
+  app.get('/api/shifts/swap-requests', isAuthenticated, async (req, res) => {
+    try {
+      const requests = await storage.getShiftSwapRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching swap requests:", error);
+      res.status(500).json({ message: "Failed to fetch swap requests" });
+    }
+  });
+
+  app.post('/api/shifts/swap-requests', isAuthenticated, async (req, res) => {
+    try {
+      const requesterId = (req as any).user.claims.sub;
+      const requestData = { ...req.body, requesterId };
+      const request = await storage.createShiftSwapRequest(requestData);
+      res.json(request);
+    } catch (error) {
+      console.error("Error creating swap request:", error);
+      res.status(500).json({ message: "Failed to create swap request" });
+    }
+  });
+
+  app.post('/api/shifts/swap-requests/:requestId/:action', isAuthenticated, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.requestId);
+      const action = req.params.action;
+      const userId = (req as any).user.claims.sub;
+      
+      let updateData: any = {};
+      if (action === "accept") {
+        updateData = { status: "approved", approvedBy: userId, approvedAt: new Date() };
+      } else if (action === "reject") {
+        updateData = { status: "rejected", approvedBy: userId, rejectionReason: req.body.reason };
+      }
+      
+      const request = await storage.updateShiftSwapRequest(requestId, updateData);
+      res.json(request);
+    } catch (error) {
+      console.error("Error updating swap request:", error);
+      res.status(500).json({ message: "Failed to update swap request" });
+    }
+  });
+
+  // Notification API routes
+  app.get('/api/notifications', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user.claims.sub;
+      const notifications = await storage.getNotificationsByUser(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post('/api/notifications/:notificationId/read', isAuthenticated, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.notificationId);
+      await storage.markNotificationAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Poll API routes
+  app.get('/api/polls', isAuthenticated, async (req, res) => {
+    try {
+      const user = await storage.getUser((req as any).user.claims.sub);
+      const userRole = user?.role || "employee";
+      const polls = await storage.getActivePolls(userRole);
+      res.json(polls);
+    } catch (error) {
+      console.error("Error fetching polls:", error);
+      res.status(500).json({ message: "Failed to fetch polls" });
+    }
+  });
+
+  app.post('/api/polls', isAuthenticated, async (req, res) => {
+    try {
+      const createdBy = (req as any).user.claims.sub;
+      const pollData = { ...req.body, createdBy };
+      const poll = await storage.createPoll(pollData);
+      res.json(poll);
+    } catch (error) {
+      console.error("Error creating poll:", error);
+      res.status(500).json({ message: "Failed to create poll" });
+    }
+  });
+
+  app.post('/api/polls/:pollId/respond', isAuthenticated, async (req, res) => {
+    try {
+      const pollId = parseInt(req.params.pollId);
+      const userId = (req as any).user.claims.sub;
+      const responseData = { ...req.body, pollId, userId };
+      const response = await storage.createPollResponse(responseData);
+      res.json(response);
+    } catch (error) {
+      console.error("Error submitting poll response:", error);
+      res.status(500).json({ message: "Failed to submit poll response" });
+    }
+  });
+
+  // Employee/User list for chat and collaboration
+  app.get('/api/employees', isAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      res.status(500).json({ message: "Failed to fetch employees" });
+    }
+  });
+
+  app.get('/api/users', isAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

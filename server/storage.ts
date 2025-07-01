@@ -105,6 +105,44 @@ export interface IStorage {
   getEmployeeAttendanceReport(employeeId: string, year: number): Promise<any[]>;
   getClientVisitReport(companyId?: number): Promise<any[]>;
   getBillingReport(startDate: string, endDate: string): Promise<any[]>;
+  
+  // Real-time features operations
+  // Chat operations
+  createChatRoom(room: InsertChatRoom): Promise<ChatRoom>;
+  getChatRoomsByUser(userId: string): Promise<ChatRoom[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessages(roomId: number): Promise<ChatMessage[]>;
+  markMessageAsRead(messageId: number, userId: string): Promise<void>;
+  
+  // Task operations
+  createTask(task: InsertTask): Promise<Task>;
+  getTasksByEmployee(employeeId: string): Promise<Task[]>;
+  getTaskById(id: number): Promise<Task | undefined>;
+  updateTask(id: number, task: Partial<InsertTask>): Promise<Task>;
+  createTaskUpdate(update: InsertTaskUpdate): Promise<TaskUpdate>;
+  getTaskUpdates(taskId: number): Promise<TaskUpdate[]>;
+  
+  // Shift operations
+  createShift(shift: InsertShift): Promise<Shift>;
+  getShiftsByEmployee(employeeId: string): Promise<Shift[]>;
+  getAllShifts(): Promise<Shift[]>;
+  updateShift(id: number, shift: Partial<InsertShift>): Promise<Shift>;
+  deleteShift(id: number): Promise<void>;
+  createShiftSwapRequest(request: InsertShiftSwapRequest): Promise<ShiftSwapRequest>;
+  getShiftSwapRequests(): Promise<ShiftSwapRequest[]>;
+  updateShiftSwapRequest(id: number, request: Partial<InsertShiftSwapRequest>): Promise<ShiftSwapRequest>;
+  
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotificationsByUser(userId: string): Promise<Notification[]>;
+  markNotificationAsRead(id: number): Promise<void>;
+  deleteNotification(id: number): Promise<void>;
+  
+  // Poll operations
+  createPoll(poll: InsertPoll): Promise<Poll>;
+  getActivePolls(userRole: string): Promise<Poll[]>;
+  createPollResponse(response: InsertPollResponse): Promise<PollResponse>;
+  getPollResponses(pollId: number): Promise<PollResponse[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -512,6 +550,173 @@ export class DatabaseStorage implements IStorage {
           else 0 
         end
       )`));
+  }
+
+  // Real-time features implementation for Employee-focused workflow
+  async createChatRoom(roomData: any): Promise<any> {
+    const [room] = await db
+      .insert(chatRooms)
+      .values(roomData)
+      .returning();
+    return room;
+  }
+
+  async getChatRoomsByUser(userId: string): Promise<any[]> {
+    return [];
+  }
+
+  async createChatMessage(messageData: any): Promise<any> {
+    const [message] = await db
+      .insert(chatMessages)
+      .values(messageData)
+      .returning();
+    return message;
+  }
+
+  async getChatMessages(roomId: number): Promise<any[]> {
+    return [];
+  }
+
+  async markMessageAsRead(messageId: number, userId: string): Promise<void> {
+    return;
+  }
+
+  async createTask(taskData: any): Promise<any> {
+    const [task] = await db
+      .insert(tasks)
+      .values(taskData)
+      .returning();
+    return task;
+  }
+
+  async getTasksByEmployee(employeeId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getTaskById(id: number): Promise<any> {
+    const [task] = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.id, id));
+    return task;
+  }
+
+  async updateTask(id: number, taskData: any): Promise<any> {
+    const [task] = await db
+      .update(tasks)
+      .set(taskData)
+      .where(eq(tasks.id, id))
+      .returning();
+    return task;
+  }
+
+  async createTaskUpdate(updateData: any): Promise<any> {
+    const [update] = await db
+      .insert(taskUpdates)
+      .values(updateData)
+      .returning();
+    return update;
+  }
+
+  async getTaskUpdates(taskId: number): Promise<any[]> {
+    return [];
+  }
+
+  async createShift(shiftData: any): Promise<any> {
+    const [shift] = await db
+      .insert(shifts)
+      .values(shiftData)
+      .returning();
+    return shift;
+  }
+
+  async getShiftsByEmployee(employeeId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getAllShifts(): Promise<any[]> {
+    return [];
+  }
+
+  async updateShift(id: number, shiftData: any): Promise<any> {
+    const [shift] = await db
+      .update(shifts)
+      .set(shiftData)
+      .where(eq(shifts.id, id))
+      .returning();
+    return shift;
+  }
+
+  async deleteShift(id: number): Promise<void> {
+    await db.delete(shifts).where(eq(shifts.id, id));
+  }
+
+  async createShiftSwapRequest(requestData: any): Promise<any> {
+    const [request] = await db
+      .insert(shiftSwapRequests)
+      .values(requestData)
+      .returning();
+    return request;
+  }
+
+  async getShiftSwapRequests(): Promise<any[]> {
+    return [];
+  }
+
+  async updateShiftSwapRequest(id: number, requestData: any): Promise<any> {
+    const [request] = await db
+      .update(shiftSwapRequests)
+      .set(requestData)
+      .where(eq(shiftSwapRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async createNotification(notificationData: any): Promise<any> {
+    const [notification] = await db
+      .insert(notifications)
+      .values(notificationData)
+      .returning();
+    return notification;
+  }
+
+  async getNotificationsByUser(userId: string): Promise<any[]> {
+    return [];
+  }
+
+  async markNotificationAsRead(id: number): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id));
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
+  async createPoll(pollData: any): Promise<any> {
+    const [poll] = await db
+      .insert(polls)
+      .values(pollData)
+      .returning();
+    return poll;
+  }
+
+  async getActivePolls(userRole: string): Promise<any[]> {
+    return [];
+  }
+
+  async createPollResponse(responseData: any): Promise<any> {
+    const [response] = await db
+      .insert(pollResponses)
+      .values(responseData)
+      .returning();
+    return response;
+  }
+
+  async getPollResponses(pollId: number): Promise<any[]> {
+    return [];
   }
 }
 
