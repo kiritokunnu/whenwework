@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, AlertTriangle } from "lucide-react";
 import { format, parseISO, isWithinInterval } from "date-fns";
@@ -27,6 +28,8 @@ interface EnhancedTimeOffFormProps {
 export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOffFormProps) {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [leaveType, setLeaveType] = useState<string>("paid");
+  const [isHalfDay, setIsHalfDay] = useState(false);
   const [reason, setReason] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
@@ -41,7 +44,8 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
 
   const createTimeOffMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/time-off-requests", "POST", data);
+      const response = await apiRequest("POST", "/api/time-off-requests", data);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -64,6 +68,8 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
   const resetForm = () => {
     setStartDate(undefined);
     setEndDate(undefined);
+    setLeaveType("paid");
+    setIsHalfDay(false);
     setReason("");
     setValidationError("");
   };
@@ -118,6 +124,8 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
       startDate: format(startDate!, 'yyyy-MM-dd'),
       endDate: format(endDate!, 'yyyy-MM-dd'),
       reason: reason.trim(),
+      type: leaveType,
+      isHalfDay: isHalfDay,
     });
   };
 
@@ -129,6 +137,36 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Leave Type Selection */}
+          <div className="space-y-3">
+            <Label>Leave Type</Label>
+            <Select value={leaveType} onValueChange={setLeaveType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select leave type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paid">Paid Leave</SelectItem>
+                <SelectItem value="sick">Sick Leave</SelectItem>
+                <SelectItem value="unpaid">Unpaid Leave</SelectItem>
+                <SelectItem value="personal">Personal Leave</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Half-day option */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="halfDay"
+              checked={isHalfDay}
+              onChange={(e) => setIsHalfDay(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="halfDay" className="text-sm">
+              Half-day leave (4 hours or less)
+            </Label>
+          </div>
+
           {/* Date Selection */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

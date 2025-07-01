@@ -31,6 +31,7 @@ import EnhancedTimeOffForm from "./enhanced-time-off-form";
 import EmployeeChat from "./employee-chat";
 import EmployeeTasks from "./employee-tasks";
 import EmployeeShifts from "./employee-shifts";
+import NotificationPanel from "./notification-panel";
 import type { CheckIn, Schedule, Company, Task, Shift, Notification } from "@shared/schema";
 
 export default function EnhancedEmployeeDashboard() {
@@ -42,6 +43,7 @@ export default function EnhancedEmployeeDashboard() {
   const [showChat, setShowChat] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
 
   // Get user location
@@ -171,7 +173,7 @@ export default function EnhancedEmployeeDashboard() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowChat(true)}
+              onClick={() => setShowNotifications(true)}
               className="relative"
             >
               <Bell className="h-4 w-4" />
@@ -563,6 +565,11 @@ export default function EnhancedEmployeeDashboard() {
       <EmployeeShifts
         isOpen={showShifts}
         onClose={() => setShowShifts(false)}
+      />
+      
+      <NotificationPanel 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
       />
     </div>
   );
