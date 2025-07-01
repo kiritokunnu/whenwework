@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Clock, Camera, Package, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Clock, Camera, Package, Plus, Loader2, MapPinIcon } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -36,16 +37,73 @@ interface SelectedProduct {
   notes?: string;
 }
 
-export default function EnhancedCheckInModal({ isOpen, onClose, companies, location }: EnhancedCheckInModalProps) {
+export default function EnhancedCheckInModal({ isOpen, onClose, companies, location: initialLocation }: EnhancedCheckInModalProps) {
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [newProductName, setNewProductName] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("");
+  const [location, setLocation] = useState<GeolocationPosition | null>(initialLocation);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Get current location when modal opens
+  useEffect(() => {
+    if (isOpen && !location) {
+      getCurrentLocation();
+    }
+  }, [isOpen, location]);
+
+  const getCurrentLocation = () => {
+    setIsGettingLocation(true);
+    setLocationError("");
+    
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by this browser");
+      setIsGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation(position);
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        let errorMessage = "Unable to get location: ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Location access denied by user";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Location information unavailable";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Location request timed out";
+            break;
+          default:
+            errorMessage += "Unknown error occurred";
+            break;
+        }
+        setLocationError(errorMessage);
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
 
   // Fetch products for inventory selection
   const { data: products = [] } = useQuery<Product[]>({
@@ -109,6 +167,9 @@ export default function EnhancedCheckInModal({ isOpen, onClose, companies, locat
     setSelectedProducts([]);
     setNewProductName("");
     setNewProductCategory("");
+    setLocation(null);
+    setLocationError("");
+    setIsGettingLocation(false);
   };
 
   const handlePhotoCapture = async () => {
@@ -207,12 +268,64 @@ export default function EnhancedCheckInModal({ isOpen, onClose, companies, locat
           </div>
 
           {/* Location Display */}
-          {location && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
-              <MapPin className="h-4 w-4" />
-              Location: {location.coords.latitude.toFixed(6)}, {location.coords.longitude.toFixed(6)}
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPinIcon className="h-4 w-4" />
+              Location Status
+            </Label>
+            {isGettingLocation ? (
+              <div className="flex items-center gap-2 text-sm bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                <span className="text-blue-800">Getting your location...</span>
+              </div>
+            ) : locationError ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm bg-red-50 border border-red-200 p-3 rounded-lg">
+                  <MapPin className="h-4 w-4 text-red-600" />
+                  <span className="text-red-800">{locationError}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={getCurrentLocation}
+                  className="w-full"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Retry Location
+                </Button>
+              </div>
+            ) : location ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm bg-green-50 border border-green-200 p-3 rounded-lg">
+                  <MapPin className="h-4 w-4 text-green-600" />
+                  <div className="flex-1">
+                    <div className="text-green-800 font-medium">Location captured successfully</div>
+                    <div className="text-green-600 text-xs">
+                      {location.coords.latitude.toFixed(6)}, {location.coords.longitude.toFixed(6)}
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Accurate to ±{Math.round(location.coords.accuracy || 0)}m
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm bg-gray-50 border border-gray-200 p-3 rounded-lg">
+                <MapPin className="h-4 w-4 text-gray-600" />
+                <span className="text-gray-800">Location required for check-in</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={getCurrentLocation}
+                  className="ml-auto"
+                >
+                  Get Location
+                </Button>
+              </div>
+            )}
+          </div>
 
           {/* Photo Capture */}
           <div className="space-y-2">

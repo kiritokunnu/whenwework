@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SiteManagement from "./site-management";
@@ -154,25 +156,41 @@ export default function ManagerDashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
-                        className="bg-secondary hover:bg-secondary/90 text-white"
-                        onClick={() => updateTimeOffMutation.mutate({ id: request.id, status: 'approved' })}
-                        disabled={updateTimeOffMutation.isPending}
-                      >
-                        <i className="fas fa-check text-xs"></i>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-accent border-accent hover:bg-accent hover:text-white"
-                        onClick={() => updateTimeOffMutation.mutate({ id: request.id, status: 'rejected', rejectionReason: 'Rejected by manager' })}
-                        disabled={updateTimeOffMutation.isPending}
-                      >
-                        <i className="fas fa-times text-xs"></i>
-                      </Button>
-                    </div>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === 'approved') {
+                          updateTimeOffMutation.mutate({ 
+                            id: request.id, 
+                            status: 'approved' 
+                          });
+                        } else if (value === 'rejected') {
+                          updateTimeOffMutation.mutate({ 
+                            id: request.id, 
+                            status: 'rejected',
+                            rejectionReason: 'Rejected by manager'
+                          });
+                        }
+                      }}
+                      disabled={updateTimeOffMutation.isPending}
+                    >
+                      <SelectTrigger className="w-28">
+                        <SelectValue placeholder="Action" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="approved">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs">Approve</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="rejected">
+                          <div className="flex items-center gap-2">
+                            <XCircle className="h-3 w-3 text-red-600" />
+                            <span className="text-xs">Deny</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })}

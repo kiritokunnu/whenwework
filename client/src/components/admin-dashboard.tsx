@@ -341,29 +341,44 @@ export default function AdminDashboard() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {request.status === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() => updateTimeOffMutation.mutate({ 
-                                id: request.id, 
-                                status: 'approved' 
-                              })}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => updateTimeOffMutation.mutate({ 
-                                id: request.id, 
-                                status: 'rejected',
-                                rejectionReason: 'Not approved by management'
-                              })}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        {request.status === 'pending' ? (
+                          <Select
+                            onValueChange={(value) => {
+                              if (value === 'approved') {
+                                updateTimeOffMutation.mutate({ 
+                                  id: request.id, 
+                                  status: 'approved' 
+                                });
+                              } else if (value === 'rejected') {
+                                updateTimeOffMutation.mutate({ 
+                                  id: request.id, 
+                                  status: 'rejected',
+                                  rejectionReason: 'Not approved by management'
+                                });
+                              }
+                            }}
+                            disabled={updateTimeOffMutation.isPending}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Action" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="approved">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  Approve
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="rejected">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                  Deny
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-muted-foreground">No action needed</span>
                         )}
                       </TableCell>
                     </TableRow>
