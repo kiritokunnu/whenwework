@@ -180,6 +180,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Admin profile organization field
+app.get('/api/admin/organization', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+  try {
+    const userId = req.user.claims.sub;
+    const user = await storage.getUser(userId);
+    
+    res.json({
+      organizationName: user?.organizationName || "",
+    });
+  } catch (error) {
+    console.error("Error fetching organization:", error);
+    res.status(500).json({ message: "Failed to fetch organization" });
+  }
+});
+
+app.put('/api/admin/organization', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+  try {
+    const userId = req.user.claims.sub;
+    const { organizationName } = req.body;
+    
+    if (!organizationName?.trim()) {
+      return res.status(400).json({ message: "Organization name is required" });
+    }
+
+    // Update the admin user's organization name
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const updatedUser = await storage.upsertUser({
+      ...user,
+      organizationName: organizationName.trim()
+    });
+    
+    res.json({
+      organizationName: updatedUser.organizationName,
+    });
+  } catch (error) {
+    console.error("Error updating organization:", error);
+    res.status(500).json({ message: "Failed to update organization" });
+  }
+});
+  
   // Position management routes
   app.post('/api/positions', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
     try {
