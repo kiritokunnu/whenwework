@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import CheckInModal from "./check-in-modal";
-import TimeOffForm from "./time-off-form";
+import EnhancedCheckInModal from "./enhanced-check-in-modal";
+import EnhancedTimeOffForm from "./enhanced-time-off-form";
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
@@ -226,16 +226,16 @@ export default function EmployeeDashboard() {
 
       {/* Modals */}
       {showCheckInModal && (
-        <CheckInModal
+        <EnhancedCheckInModal
           isOpen={showCheckInModal}
           onClose={() => setShowCheckInModal(false)}
           companies={companies}
-          location={null}
+          location={location}
         />
       )}
 
       {showTimeOffForm && (
-        <TimeOffForm
+        <EnhancedTimeOffForm
           isOpen={showTimeOffForm}
           onClose={() => setShowTimeOffForm(false)}
         />

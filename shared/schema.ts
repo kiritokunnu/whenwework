@@ -125,10 +125,50 @@ export const announcements = pgTable("announcements", {
   content: text("content").notNull(),
   type: varchar("type", { enum: ["general", "closure", "restriction", "emergency"] }).default("general"),
   targetRole: varchar("target_role", { enum: ["all", "admin", "manager", "employee"] }).default("all"),
+  restrictedStartDate: date("restricted_start_date"),
+  restrictedEndDate: date("restricted_end_date"),
   isActive: boolean("is_active").default(true),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Pre-registered employees table
+export const preRegisteredEmployees = pgTable("pre_registered_employees", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  position: varchar("position"),
+  companyId: integer("company_id"),
+  isUsed: boolean("is_used").default(false),
+  registeredBy: varchar("registered_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Products/Inventory table
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category"),
+  unit: varchar("unit").default("pcs"),
+  isActive: boolean("is_active").default(true),
+  isCustom: boolean("is_custom").default(false),
+  addedBy: varchar("added_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Check-in inventory/products used table
+export const checkInProducts = pgTable("check_in_products", {
+  id: serial("id").primaryKey(),
+  checkInId: integer("check_in_id").notNull(),
+  productId: integer("product_id").notNull(),
+  quantity: integer("quantity").default(1),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
@@ -182,6 +222,28 @@ export const timeOffRequestsRelations = relations(timeOffRequests, ({ one }) => 
   }),
 }));
 
+export const preRegisteredEmployeesRelations = relations(preRegisteredEmployees, ({ one }) => ({
+  company: one(companies, {
+    fields: [preRegisteredEmployees.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const productsRelations = relations(products, ({ many }) => ({
+  checkInProducts: many(checkInProducts),
+}));
+
+export const checkInProductsRelations = relations(checkInProducts, ({ one }) => ({
+  checkIn: one(checkIns, {
+    fields: [checkInProducts.checkInId],
+    references: [checkIns.id],
+  }),
+  product: one(products, {
+    fields: [checkInProducts.productId],
+    references: [products.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -224,6 +286,22 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   updatedAt: true,
 });
 
+export const insertPreRegisteredEmployeeSchema = createInsertSchema(preRegisteredEmployees).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCheckInProductSchema = createInsertSchema(checkInProducts).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -239,3 +317,9 @@ export type InsertTimeOffRequest = z.infer<typeof insertTimeOffRequestSchema>;
 export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type Announcement = typeof announcements.$inferSelect;
+export type InsertPreRegisteredEmployee = z.infer<typeof insertPreRegisteredEmployeeSchema>;
+export type PreRegisteredEmployee = typeof preRegisteredEmployees.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
+export type InsertCheckInProduct = z.infer<typeof insertCheckInProductSchema>;
+export type CheckInProduct = typeof checkInProducts.$inferSelect;

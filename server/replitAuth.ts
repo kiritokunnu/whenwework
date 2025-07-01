@@ -57,13 +57,29 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  // Check if user exists in pre-registered employees
+  const preRegistered = await storage.getPreRegisteredEmployeeByEmail(claims["email"]);
+  
+  const userData = {
     id: claims["sub"],
     email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
+    firstName: claims["first_name"] || preRegistered?.firstName,
+    lastName: claims["last_name"] || preRegistered?.lastName,
     profileImageUrl: claims["profile_image_url"],
-  });
+    role: preRegistered ? "employee" as const : "employee" as const,
+    position: preRegistered?.position,
+    companyId: preRegistered?.companyId,
+    phone: preRegistered?.phone,
+  };
+
+  const user = await storage.upsertUser(userData);
+  
+  // Mark pre-registered employee as used
+  if (preRegistered) {
+    await storage.markPreRegisteredEmployeeAsUsed(preRegistered.id);
+  }
+  
+  return user;
 }
 
 export async function setupAuth(app: Express) {

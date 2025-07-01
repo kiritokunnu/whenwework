@@ -6,6 +6,9 @@ import {
   checkIns,
   timeOffRequests,
   announcements,
+  preRegisteredEmployees,
+  products,
+  checkInProducts,
   type User,
   type UpsertUser,
   type Company,
@@ -20,6 +23,12 @@ import {
   type InsertTimeOffRequest,
   type Announcement,
   type InsertAnnouncement,
+  type PreRegisteredEmployee,
+  type InsertPreRegisteredEmployee,
+  type Product,
+  type InsertProduct,
+  type CheckInProduct,
+  type InsertCheckInProduct,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
@@ -71,6 +80,31 @@ export interface IStorage {
   getActiveAnnouncements(role?: string): Promise<Announcement[]>;
   updateAnnouncement(id: number, announcement: Partial<InsertAnnouncement>): Promise<Announcement>;
   deleteAnnouncement(id: number): Promise<void>;
+  getRestrictedPeriods(): Promise<Announcement[]>;
+  
+  // Pre-registered employee operations
+  createPreRegisteredEmployee(employee: InsertPreRegisteredEmployee): Promise<PreRegisteredEmployee>;
+  getPreRegisteredEmployeeByEmail(email: string): Promise<PreRegisteredEmployee | undefined>;
+  getPreRegisteredEmployeeByPhone(phone: string): Promise<PreRegisteredEmployee | undefined>;
+  getAllPreRegisteredEmployees(): Promise<PreRegisteredEmployee[]>;
+  markPreRegisteredEmployeeAsUsed(id: number): Promise<void>;
+  deletePreRegisteredEmployee(id: number): Promise<void>;
+  
+  // Product operations
+  createProduct(product: InsertProduct): Promise<Product>;
+  getAllProducts(): Promise<Product[]>;
+  getActiveProducts(): Promise<Product[]>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
+  
+  // Check-in product operations
+  addCheckInProducts(checkInId: number, products: InsertCheckInProduct[]): Promise<CheckInProduct[]>;
+  getCheckInProducts(checkInId: number): Promise<CheckInProduct[]>;
+  
+  // Reporting operations
+  getEmployeeAttendanceReport(employeeId: string, year: number): Promise<any[]>;
+  getClientVisitReport(companyId?: number): Promise<any[]>;
+  getBillingReport(startDate: string, endDate: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -98,7 +132,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserRole(id: string, role: string): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ role, updatedAt: new Date() })
+      .set({ role: role as "admin" | "manager" | "employee", updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user;
@@ -301,6 +335,183 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAnnouncement(id: number): Promise<void> {
     await db.update(announcements).set({ isActive: false }).where(eq(announcements.id, id));
+  }
+
+  async getRestrictedPeriods(): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.type, "restriction"),
+          eq(announcements.isActive, true)
+        )
+      )
+      .orderBy(asc(announcements.restrictedStartDate));
+  }
+
+  // Pre-registered employee operations
+  async createPreRegisteredEmployee(employee: InsertPreRegisteredEmployee): Promise<PreRegisteredEmployee> {
+    const [newEmployee] = await db.insert(preRegisteredEmployees).values(employee).returning();
+    return newEmployee;
+  }
+
+  async getPreRegisteredEmployeeByEmail(email: string): Promise<PreRegisteredEmployee | undefined> {
+    const [employee] = await db
+      .select()
+      .from(preRegisteredEmployees)
+      .where(and(eq(preRegisteredEmployees.email, email), eq(preRegisteredEmployees.isUsed, false)));
+    return employee;
+  }
+
+  async getPreRegisteredEmployeeByPhone(phone: string): Promise<PreRegisteredEmployee | undefined> {
+    const [employee] = await db
+      .select()
+      .from(preRegisteredEmployees)
+      .where(and(eq(preRegisteredEmployees.phone, phone), eq(preRegisteredEmployees.isUsed, false)));
+    return employee;
+  }
+
+  async getAllPreRegisteredEmployees(): Promise<PreRegisteredEmployee[]> {
+    return await db.select().from(preRegisteredEmployees).orderBy(desc(preRegisteredEmployees.createdAt));
+  }
+
+  async markPreRegisteredEmployeeAsUsed(id: number): Promise<void> {
+    await db.update(preRegisteredEmployees).set({ isUsed: true }).where(eq(preRegisteredEmployees.id, id));
+  }
+
+  async deletePreRegisteredEmployee(id: number): Promise<void> {
+    await db.delete(preRegisteredEmployees).where(eq(preRegisteredEmployees.id, id));
+  }
+
+  // Product operations
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db.insert(products).values(product).returning();
+    return newProduct;
+  }
+
+  async getAllProducts(): Promise<Product[]> {
+    return await db.select().from(products).orderBy(asc(products.name));
+  }
+
+  async getActiveProducts(): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.isActive, true))
+      .orderBy(asc(products.name));
+  }
+
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set({ ...product, updatedAt: new Date() })
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.update(products).set({ isActive: false }).where(eq(products.id, id));
+  }
+
+  // Check-in product operations
+  async addCheckInProducts(checkInId: number, productsList: InsertCheckInProduct[]): Promise<CheckInProduct[]> {
+    const productsWithCheckInId = productsList.map(product => ({
+      ...product,
+      checkInId
+    }));
+    return await db.insert(checkInProducts).values(productsWithCheckInId).returning();
+  }
+
+  async getCheckInProducts(checkInId: number): Promise<CheckInProduct[]> {
+    return await db
+      .select()
+      .from(checkInProducts)
+      .where(eq(checkInProducts.checkInId, checkInId))
+      .orderBy(asc(checkInProducts.createdAt));
+  }
+
+  // Reporting operations
+  async getEmployeeAttendanceReport(employeeId: string, year: number): Promise<any[]> {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+    
+    return await db
+      .select()
+      .from(checkIns)
+      .where(
+        and(
+          eq(checkIns.employeeId, employeeId),
+          gte(checkIns.checkInTime, startDate),
+          lte(checkIns.checkInTime, endDate)
+        )
+      )
+      .orderBy(desc(checkIns.checkInTime));
+  }
+
+  async getClientVisitReport(companyId?: number): Promise<any[]> {
+    const baseQuery = db
+      .select({
+        companyId: checkIns.companyId,
+        companyName: companies.name,
+        visitCount: sql<number>`count(*)`,
+        totalHours: sql<number>`sum(
+          case 
+            when ${checkIns.checkOutTime} is not null 
+            then extract(epoch from ${checkIns.checkOutTime} - ${checkIns.checkInTime})/3600 
+            else 0 
+          end
+        )`,
+        lastVisit: sql<Date>`max(${checkIns.checkInTime})`
+      })
+      .from(checkIns)
+      .leftJoin(companies, eq(checkIns.companyId, companies.id))
+      .groupBy(checkIns.companyId, companies.name);
+
+    if (companyId) {
+      return await baseQuery.where(eq(checkIns.companyId, companyId)).orderBy(desc(sql`count(*)`));
+    }
+
+    return await baseQuery.orderBy(desc(sql`count(*)`));
+  }
+
+  async getBillingReport(startDate: string, endDate: string): Promise<any[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    return await db
+      .select({
+        employeeId: checkIns.employeeId,
+        employeeName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        companyId: checkIns.companyId,
+        companyName: companies.name,
+        totalHours: sql<number>`sum(
+          case 
+            when ${checkIns.checkOutTime} is not null 
+            then extract(epoch from ${checkIns.checkOutTime} - ${checkIns.checkInTime})/3600 
+            else 0 
+          end
+        )`,
+        visitCount: sql<number>`count(*)`
+      })
+      .from(checkIns)
+      .leftJoin(users, eq(checkIns.employeeId, users.id))
+      .leftJoin(companies, eq(checkIns.companyId, companies.id))
+      .where(
+        and(
+          gte(checkIns.checkInTime, start),
+          lte(checkIns.checkInTime, end)
+        )
+      )
+      .groupBy(checkIns.employeeId, users.firstName, users.lastName, checkIns.companyId, companies.name)
+      .orderBy(desc(sql`sum(
+        case 
+          when ${checkIns.checkOutTime} is not null 
+          then extract(epoch from ${checkIns.checkOutTime} - ${checkIns.checkInTime})/3600 
+          else 0 
+        end
+      )`));
   }
 }
 

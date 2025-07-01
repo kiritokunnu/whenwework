@@ -8,7 +8,10 @@ import {
   insertScheduleSchema,
   insertCheckInSchema,
   insertTimeOffRequestSchema,
-  insertAnnouncementSchema
+  insertAnnouncementSchema,
+  insertPreRegisteredEmployeeSchema,
+  insertProductSchema,
+  insertCheckInProductSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -182,12 +185,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/schedules', isAuthenticated, async (req: any, res) => {
     try {
       const { employeeId } = req.query;
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       
       if (employeeId) {
         const schedules = await storage.getSchedulesByEmployee(employeeId as string);
         res.json(schedules);
-      } else if (req.currentUser.role === 'employee') {
-        const schedules = await storage.getSchedulesByEmployee(req.currentUser.id);
+      } else if (user.role === 'employee') {
+        const schedules = await storage.getSchedulesByEmployee(user.id);
         res.json(schedules);
       } else {
         const schedules = await storage.getAllSchedules();
@@ -202,9 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check-in routes
   app.post('/api/check-ins', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
       const checkInData = insertCheckInSchema.parse({
         ...req.body,
-        employeeId: req.currentUser.id
+        employeeId: userId
       });
       const checkIn = await storage.createCheckIn(checkInData);
       res.json(checkIn);
@@ -216,8 +226,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/check-ins', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.currentUser.role === 'employee') {
-        const checkIns = await storage.getCheckInsByEmployee(req.currentUser.id);
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (user.role === 'employee') {
+        const checkIns = await storage.getCheckInsByEmployee(user.id);
         res.json(checkIns);
       } else {
         const checkIns = await storage.getAllCheckIns();
@@ -231,7 +248,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/check-ins/active', isAuthenticated, async (req: any, res) => {
     try {
-      const activeCheckIn = await storage.getActiveCheckIn(req.currentUser.id);
+      const userId = req.user?.claims?.sub;
+      const activeCheckIn = await storage.getActiveCheckIn(userId);
       res.json(activeCheckIn);
     } catch (error) {
       console.error("Error fetching active check-in:", error);
@@ -254,9 +272,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Time-off request routes
   app.post('/api/time-off-requests', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
       const requestData = insertTimeOffRequestSchema.parse({
         ...req.body,
-        employeeId: req.currentUser.id
+        employeeId: userId
       });
       const request = await storage.createTimeOffRequest(requestData);
       res.json(request);
@@ -268,8 +287,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/time-off-requests', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.currentUser.role === 'employee') {
-        const requests = await storage.getTimeOffRequestsByEmployee(req.currentUser.id);
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (user.role === 'employee') {
+        const requests = await storage.getTimeOffRequestsByEmployee(user.id);
         res.json(requests);
       } else {
         const requests = await storage.getPendingTimeOffRequests();
@@ -316,11 +342,225 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/announcements', isAuthenticated, async (req: any, res) => {
     try {
-      const announcements = await storage.getActiveAnnouncements(req.currentUser.role);
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const announcements = await storage.getActiveAnnouncements(user.role || "employee");
       res.json(announcements);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  // Pre-registered employee routes
+  app.post('/api/pre-registered-employees', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const employeeData = insertPreRegisteredEmployeeSchema.parse({
+        ...req.body,
+        registeredBy: req.user.claims.sub
+      });
+      const employee = await storage.createPreRegisteredEmployee(employeeData);
+      res.json(employee);
+    } catch (error) {
+      console.error("Error creating pre-registered employee:", error);
+      res.status(500).json({ message: "Failed to create pre-registered employee" });
+    }
+  });
+
+  app.get('/api/pre-registered-employees', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const employees = await storage.getAllPreRegisteredEmployees();
+      res.json(employees);
+    } catch (error) {
+      console.error("Error fetching pre-registered employees:", error);
+      res.status(500).json({ message: "Failed to fetch pre-registered employees" });
+    }
+  });
+
+  app.delete('/api/pre-registered-employees/:id', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deletePreRegisteredEmployee(id);
+      res.json({ message: "Pre-registered employee deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting pre-registered employee:", error);
+      res.status(500).json({ message: "Failed to delete pre-registered employee" });
+    }
+  });
+
+  // Product management routes
+  app.post('/api/products', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const productData = insertProductSchema.parse({
+        ...req.body,
+        addedBy: req.user.claims.sub
+      });
+      const product = await storage.createProduct(productData);
+      res.json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  app.get('/api/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const products = await storage.getActiveProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.patch('/api/products/:id', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const product = await storage.updateProduct(id, updates);
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  app.delete('/api/products/:id', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteProduct(id);
+      res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ message: "Failed to delete product" });
+    }
+  });
+
+  // Custom product notification route
+  app.post('/api/products/custom', isAuthenticated, async (req: any, res) => {
+    try {
+      const productData = insertProductSchema.parse({
+        ...req.body,
+        isCustom: true,
+        addedBy: req.user.claims.sub
+      });
+      const product = await storage.createProduct(productData);
+      res.json(product);
+    } catch (error) {
+      console.error("Error creating custom product:", error);
+      res.status(500).json({ message: "Failed to create custom product" });
+    }
+  });
+
+  // Check-in product routes
+  app.post('/api/check-ins/:checkInId/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const checkInId = parseInt(req.params.checkInId);
+      const products = req.body.products.map((product: any) => 
+        insertCheckInProductSchema.parse(product)
+      );
+      const result = await storage.addCheckInProducts(checkInId, products);
+      res.json(result);
+    } catch (error) {
+      console.error("Error adding check-in products:", error);
+      res.status(500).json({ message: "Failed to add check-in products" });
+    }
+  });
+
+  app.get('/api/check-ins/:checkInId/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const checkInId = parseInt(req.params.checkInId);
+      const products = await storage.getCheckInProducts(checkInId);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching check-in products:", error);
+      res.status(500).json({ message: "Failed to fetch check-in products" });
+    }
+  });
+
+  // Reporting routes
+  app.get('/api/reports/attendance/:employeeId', isAuthenticated, async (req: any, res) => {
+    try {
+      const employeeId = req.params.employeeId;
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      
+      // Employees can only access their own reports
+      if (req.currentUser.role === 'employee' && req.currentUser.id !== employeeId) {
+        return res.status(403).json({ message: "Forbidden: Can only access your own attendance report" });
+      }
+      
+      const report = await storage.getEmployeeAttendanceReport(employeeId, year);
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching attendance report:", error);
+      res.status(500).json({ message: "Failed to fetch attendance report" });
+    }
+  });
+
+  app.get('/api/reports/client-visits', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : undefined;
+      const report = await storage.getClientVisitReport(companyId);
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching client visit report:", error);
+      res.status(500).json({ message: "Failed to fetch client visit report" });
+    }
+  });
+
+  app.get('/api/reports/billing', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date are required" });
+      }
+      
+      const report = await storage.getBillingReport(startDate, endDate);
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching billing report:", error);
+      res.status(500).json({ message: "Failed to fetch billing report" });
+    }
+  });
+
+  // Restricted periods route
+  app.get('/api/restricted-periods', isAuthenticated, async (req: any, res) => {
+    try {
+      const periods = await storage.getRestrictedPeriods();
+      res.json(periods);
+    } catch (error) {
+      console.error("Error fetching restricted periods:", error);
+      res.status(500).json({ message: "Failed to fetch restricted periods" });
+    }
+  });
+
+  // Employee management routes for admin/manager
+  app.get('/api/employees', isAuthenticated, requireRole(['admin', 'manager']), async (req: any, res) => {
+    try {
+      const employees = await storage.getAllUsers();
+      res.json(employees);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      res.status(500).json({ message: "Failed to fetch employees" });
+    }
+  });
+
+  app.patch('/api/employees/:id/role', isAuthenticated, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const id = req.params.id;
+      const { role } = req.body;
+      const user = await storage.updateUserRole(id, role);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
     }
   });
 
