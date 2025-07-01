@@ -27,13 +27,6 @@ export default function AdminProfile() {
 
   const { data: orgSettings } = useQuery<OrganizationSettings>({
     queryKey: ["/api/admin/organization"],
-    onSuccess: (data) => {
-      if (data) {
-        setOrgName(data.organizationName || "");
-        setEmailDomain(data.emailDomain || "");
-        setDefaultRole(data.defaultRole || "employee");
-      }
-    },
   });
 
   const updateOrgMutation = useMutation({
@@ -138,21 +131,21 @@ export default function AdminProfile() {
               <div>
                 <Label className="text-sm font-medium">Organization Name</Label>
                 <p className="text-sm text-muted-foreground">
-                  {orgSettings?.organizationName || "Not configured"}
+                  {(orgSettings as any)?.organizationName || "Not configured"}
                 </p>
               </div>
               
-              {orgSettings?.emailDomain && (
+              {(orgSettings as any)?.emailDomain && (
                 <div>
                   <Label className="text-sm font-medium">Email Domain</Label>
-                  <p className="text-sm text-muted-foreground">@{orgSettings.emailDomain}</p>
+                  <p className="text-sm text-muted-foreground">@{(orgSettings as any).emailDomain}</p>
                 </div>
               )}
 
               <div>
                 <Label className="text-sm font-medium">Default Role for New Users</Label>
                 <Badge variant="secondary" className="ml-2">
-                  {orgSettings?.defaultRole || "employee"}
+                  {(orgSettings as any)?.defaultRole || "employee"}
                 </Badge>
               </div>
 
@@ -235,9 +228,9 @@ export default function AdminProfile() {
                   onClick={() => {
                     setIsEditingOrg(false);
                     // Reset to current values
-                    setOrgName(orgSettings?.organizationName || "");
-                    setEmailDomain(orgSettings?.emailDomain || "");
-                    setDefaultRole(orgSettings?.defaultRole || "employee");
+                    setOrgName((orgSettings as any)?.organizationName || "");
+                    setEmailDomain((orgSettings as any)?.emailDomain || "");
+                    setDefaultRole((orgSettings as any)?.defaultRole || "employee");
                   }}
                 >
                   Cancel

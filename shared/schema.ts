@@ -529,17 +529,8 @@ export type Product = typeof products.$inferSelect;
 export type InsertCheckInProduct = z.infer<typeof insertCheckInProductSchema>;
 export type CheckInProduct = typeof checkInProducts.$inferSelect;
 
-// New feature types
-export type ChatRoom = typeof chatRooms.$inferSelect;
-export type ChatMessage = typeof chatMessages.$inferSelect;
+// Additional feature types
 export type MessageReadReceipt = typeof messageReadReceipts.$inferSelect;
-export type Task = typeof tasks.$inferSelect;
-export type TaskUpdate = typeof taskUpdates.$inferSelect;
-export type Shift = typeof shifts.$inferSelect;
-export type ShiftSwapRequest = typeof shiftSwapRequests.$inferSelect;
-export type Poll = typeof polls.$inferSelect;
-export type PollResponse = typeof pollResponses.$inferSelect;
-export type Notification = typeof notifications.$inferSelect;
 export type SyncQueueItem = typeof syncQueue.$inferSelect;
 
 // Insert schemas for new features
@@ -597,15 +588,35 @@ export const insertWorkSummarySchema = createInsertSchema(workSummaries).omit({
   createdAt: true,
 });
 
+// Chat types
 export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type ChatRoom = typeof chatRooms.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Task types
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
 export type InsertTaskUpdate = z.infer<typeof insertTaskUpdateSchema>;
+export type TaskUpdate = typeof taskUpdates.$inferSelect;
+
+// Shift types
 export type InsertShift = z.infer<typeof insertShiftSchema>;
+export type Shift = typeof shifts.$inferSelect;
 export type InsertShiftSwapRequest = z.infer<typeof insertShiftSwapRequestSchema>;
+export type ShiftSwapRequest = typeof shiftSwapRequests.$inferSelect;
+
+// Poll types
 export type InsertPoll = z.infer<typeof insertPollSchema>;
+export type Poll = typeof polls.$inferSelect;
 export type InsertPollResponse = z.infer<typeof insertPollResponseSchema>;
+export type PollResponse = typeof pollResponses.$inferSelect;
+
+// Notification types
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
+// Work summary types
 export type InsertWorkSummary = z.infer<typeof insertWorkSummarySchema>;
 export type WorkSummary = typeof workSummaries.$inferSelect;
 

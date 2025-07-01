@@ -1,9 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import SiteManagement from "./site-management";
+import EmployeeManagement from "./employee-management";
+import ScheduleManagement from "./schedule-management";
 
 export default function ManagerDashboard() {
+  const [showSiteDialog, setShowSiteDialog] = useState(false);
+  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Fetch data
   const { data: users = [] } = useQuery({
     queryKey: ["/api/users"],
@@ -22,13 +35,27 @@ export default function ManagerDashboard() {
   });
 
   // Calculate stats
-  const activeEmployees = users.filter(u => u.isActive && u.role === 'employee').length;
-  const todayCheckIns = checkIns.filter(c => {
+  const activeEmployees = (users as any[]).filter((u: any) => u.isActive && u.role === 'employee').length;
+  const todayCheckIns = (checkIns as any[]).filter((c: any) => {
     const today = new Date().toISOString().split('T')[0];
     return new Date(c.checkInTime).toISOString().split('T')[0] === today;
   });
-  const onDutyToday = todayCheckIns.filter(c => c.status === 'checked_in').length;
-  const pendingRequests = timeOffRequests.filter(r => r.status === 'pending');
+  const onDutyToday = todayCheckIns.filter((c: any) => c.status === 'checked_in').length;
+  const pendingRequests = (timeOffRequests as any[]).filter((r: any) => r.status === 'pending');
+
+  // Approve/Reject time-off requests
+  const updateTimeOffMutation = useMutation({
+    mutationFn: async ({ id, status, rejectionReason }: { id: number; status: string; rejectionReason?: string }) => {
+      return await apiRequest(`/api/time-off-requests/${id}`, "PATCH", { status, rejectionReason });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Request updated",
+        description: "Time-off request status has been updated",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-off-requests"] });
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -69,7 +96,7 @@ export default function ManagerDashboard() {
           <Button
             variant="outline"
             className="p-3 h-auto flex flex-col items-center space-y-2"
-            onClick={() => {/* TODO: Implement */}}
+            onClick={() => setShowEmployeeDialog(true)}
           >
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
               <i className="fas fa-plus text-primary text-sm"></i>
@@ -79,7 +106,7 @@ export default function ManagerDashboard() {
           <Button
             variant="outline"
             className="p-3 h-auto flex flex-col items-center space-y-2"
-            onClick={() => {/* TODO: Implement */}}
+            onClick={() => setShowSiteDialog(true)}
           >
             <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
               <i className="fas fa-building text-secondary text-sm"></i>
@@ -89,7 +116,7 @@ export default function ManagerDashboard() {
           <Button
             variant="outline"
             className="p-3 h-auto flex flex-col items-center space-y-2"
-            onClick={() => {/* TODO: Implement */}}
+            onClick={() => setShowScheduleDialog(true)}
           >
             <div className="w-8 h-8 bg-warning/10 rounded-full flex items-center justify-center">
               <i className="fas fa-calendar text-warning text-sm"></i>
@@ -128,10 +155,21 @@ export default function ManagerDashboard() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-white">
+                      <Button 
+                        size="sm" 
+                        className="bg-secondary hover:bg-secondary/90 text-white"
+                        onClick={() => updateTimeOffMutation.mutate({ id: request.id, status: 'approved' })}
+                        disabled={updateTimeOffMutation.isPending}
+                      >
                         <i className="fas fa-check text-xs"></i>
                       </Button>
-                      <Button size="sm" variant="outline" className="text-accent border-accent hover:bg-accent hover:text-white">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-accent border-accent hover:bg-accent hover:text-white"
+                        onClick={() => updateTimeOffMutation.mutate({ id: request.id, status: 'rejected', rejectionReason: 'Rejected by manager' })}
+                        disabled={updateTimeOffMutation.isPending}
+                      >
                         <i className="fas fa-times text-xs"></i>
                       </Button>
                     </div>
@@ -217,6 +255,34 @@ export default function ManagerDashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {/* Dialogs */}
+      <Dialog open={showSiteDialog} onOpenChange={setShowSiteDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Manage Sites</DialogTitle>
+          </DialogHeader>
+          <SiteManagement />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Employee Management</DialogTitle>
+          </DialogHeader>
+          <EmployeeManagement />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Schedule Management</DialogTitle>
+          </DialogHeader>
+          <ScheduleManagement />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

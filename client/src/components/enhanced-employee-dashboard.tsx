@@ -26,13 +26,14 @@ import {
 } from "lucide-react";
 import { format, subDays, startOfWeek, isToday } from "date-fns";
 import StreamlinedCheckInModal from "./streamlined-check-in-modal";
+import EnhancedCheckInModal from "./enhanced-check-in-modal";
 import EnhancedWorkSummaryModal from "./enhanced-work-summary-modal";
 import EnhancedTimeOffForm from "./enhanced-time-off-form";
 import EmployeeChat from "./employee-chat";
 import EmployeeTasks from "./employee-tasks";
 import EmployeeShifts from "./employee-shifts";
 import NotificationPanel from "./notification-panel";
-import type { CheckIn, Schedule, Company, Task, Shift, Notification } from "@shared/schema";
+import type { CheckIn, Schedule, Company, Task, Shift, Notification, Product } from "@shared/schema";
 
 export default function EnhancedEmployeeDashboard() {
   const { user } = useAuth();
