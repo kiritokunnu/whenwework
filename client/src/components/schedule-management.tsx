@@ -174,7 +174,7 @@ export default function ScheduleManagement() {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingSchedule ? "Edit Schedule" : "Create New Schedule"}

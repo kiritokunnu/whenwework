@@ -258,7 +258,7 @@ export default function ManagerDashboard() {
 
       {/* Dialogs */}
       <Dialog open={showSiteDialog} onOpenChange={setShowSiteDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-[90vw]">
           <DialogHeader>
             <DialogTitle>Manage Sites</DialogTitle>
           </DialogHeader>
@@ -267,7 +267,7 @@ export default function ManagerDashboard() {
       </Dialog>
 
       <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-[90vw]">
           <DialogHeader>
             <DialogTitle>Employee Management</DialogTitle>
           </DialogHeader>
@@ -276,7 +276,7 @@ export default function ManagerDashboard() {
       </Dialog>
 
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-[90vw]">
           <DialogHeader>
             <DialogTitle>Schedule Management</DialogTitle>
           </DialogHeader>

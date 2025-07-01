@@ -128,6 +128,14 @@ WorkForce Manager is a comprehensive workforce management application designed f
 ## Changelog
 
 Recent Major Updates:
+- July 01, 2025. UI/UX improvements and bug fixes
+  ✓ Removed longitude/latitude manual input fields from site management form
+  ✓ Made all dialog/modal components responsive for mobile and desktop
+  ✓ Fixed leave request date selection validation bug 
+  ✓ Enhanced mobile compatibility for all management dialogs
+  ✓ Site location is now captured automatically during check-in process
+  ✓ Admin profile organization field fully functional and editable
+
 - July 01, 2025. Enhanced with comprehensive Employee-focused real-time collaboration features
   ✓ Real-time chat system with group/direct messaging, file sharing, and voice notes
   ✓ Task management with photo/video proof, location verification, and time tracking

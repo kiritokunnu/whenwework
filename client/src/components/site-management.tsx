@@ -36,8 +36,6 @@ export default function SiteManagement() {
       contactEmail: "",
       contactPhone: "",
       description: "",
-      latitude: 0,
-      longitude: 0,
       isActive: true,
     },
   });
@@ -127,34 +125,12 @@ export default function SiteManagement() {
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
       description: company.description || "",
-      latitude: company.latitude || 0,
-      longitude: company.longitude || 0,
       isActive: company.isActive ?? true,
     });
     setShowDialog(true);
   };
 
-  const getCurrentLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          form.setValue("latitude", position.coords.latitude);
-          form.setValue("longitude", position.coords.longitude);
-          toast({
-            title: "Location Updated",
-            description: "Current location has been set",
-          });
-        },
-        (error) => {
-          toast({
-            title: "Location Error",
-            description: "Could not get current location",
-            variant: "destructive",
-          });
-        }
-      );
-    }
-  };
+
 
   return (
     <div className="space-y-6">
@@ -175,7 +151,7 @@ export default function SiteManagement() {
               Add Site
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingCompany ? "Edit Site" : "Add New Site"}
@@ -272,51 +248,7 @@ export default function SiteManagement() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="latitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Latitude</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="0.000000"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="longitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Longitude</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="0.000000"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
-                <Button type="button" variant="outline" onClick={getCurrentLocation}>
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Use Current Location
-                </Button>
 
                 <div className="flex gap-2 pt-4">
                   <Button

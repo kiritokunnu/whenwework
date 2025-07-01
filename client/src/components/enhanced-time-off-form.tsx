@@ -131,7 +131,7 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-w-[90vw]">
         <DialogHeader>
           <DialogTitle>Request Time Off</DialogTitle>
         </DialogHeader>
@@ -190,6 +190,9 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
                     selected={startDate}
                     onSelect={(date) => {
                       setStartDate(date);
+                      if (validationError.includes("select both start and end dates")) {
+                        setValidationError("");
+                      }
                       if (date && endDate) {
                         setTimeout(validateDateRange, 100);
                       }
@@ -222,6 +225,9 @@ export default function EnhancedTimeOffForm({ isOpen, onClose }: EnhancedTimeOff
                     selected={endDate}
                     onSelect={(date) => {
                       setEndDate(date);
+                      if (validationError.includes("select both start and end dates")) {
+                        setValidationError("");
+                      }
                       if (startDate && date) {
                         setTimeout(validateDateRange, 100);
                       }
